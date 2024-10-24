@@ -13,5 +13,6 @@ https://github.com/user-attachments/assets/c84478ec-87e2-4e19-ac3e-46a63f76c4e2
 
 
 
-https://github.com/user-attachments/assets/0a29ddb3-54a2-4752-b292-e84b5edfe091
+
+![smeagol-gif-smeagol](https://github.com/user-attachments/assets/d4fb957d-0564-4952-9cbc-8bc1649faaca)
 
