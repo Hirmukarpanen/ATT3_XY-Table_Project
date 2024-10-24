@@ -1,5 +1,5 @@
 # Ryhma
-wizardtimi & me 👍
+Timi & Sebastian 👍
 very good team it is. 
 The Bestest
 
