@@ -1,0 +1,410 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FBMotion" Id="{7a5b8d4f-57ac-4dc7-8374-438f1a1cdab8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FBMotion
+VAR
+	AxisPower: MC_Power;
+	AxisMoveabsolute: MC_MoveAbsolute;
+	AxisHome: MC_Home;
+	AxisReset: MC_Reset;
+	bHomeExec: BOOL;
+	bMoveExec: BOOL;
+	MoveToHome: LREAL;
+	rVelocity: LREAL := 30;
+	rAcceleration: LREAL := 1000;
+	rDeceleration: LREAL := 1000;
+	rJerk: LREAL := 1000;
+	HomeOptions: ST_HomingOptions;
+	MoveOptions: ST_MoveOptions;
+	PowerOptions: ST_PowerOptions;
+	PowerBufferMode: MC_BufferMode;
+	HomingMode: MC_HomingMode;
+	HomeBufferMode: MC_BufferMode;
+	MoveBufferMove: MC_BufferMode;
+	MoveBufferMode: MC_BufferMode;
+	nDistanceToTarget: INT;
+	rDistanceToTarget: LREAL;
+	bResetExec: BOOL;
+	luku: INT;
+END_VAR
+VAR_OUTPUT
+	bPowerStatus: BOOL;
+END_VAR
+VAR
+	AxisJog: MC_Jog;
+	bJogForward: BOOL;
+	bJogBackward: BOOL;
+	JogMode: E_JogMode := E_JOGMODE.MC_JOGMODE_CONTINOUS;
+	rJogVelocity: LREAL := 30;
+	rJogAcceleration: LREAL := 1000;
+	rJogDeceleration: LREAL := 1000;
+	rJogJerk: LREAL := 1000;
+	rJogMoveToPos: LREAL;
+	rMoveToPos: LREAL;
+	eHomeState: E_HomeState;
+	bHomeCmd: BOOL;
+	tonHomeDelay: TON := (PT := TIME#2S0MS);
+	tonSecondDelay: TON := (PT := TIME#500MS);
+	tonFinalDelay: TON := (PT := TIME#1S0MS);
+	fbSetPosition: MC_SetPosition;
+	bSetPosition: BOOL;
+	rSetPosition: LREAL := 0;
+	SetPos: ST_McOutputs;
+END_VAR
+VAR_INPUT
+	bHomeCalibrationCam: BOOL;
+END_VAR
+VAR
+	bPowerEnable: BOOL := TRUE;
+END_VAR
+VAR_IN_OUT
+	AxisRef: AXIS_REF;
+END_VAR
+VAR
+	MoveOut: ST_McOutputs;
+	HomeOut: ST_McOutputs;
+	PowerOut: ST_McOutputs;
+	JogOut: ST_McOutputs;
+	ResetOut: ST_McOutputs;
+END_VAR
+
+VAR_OUTPUT
+	bHomed: BOOL;
+	bP2P_Ready: BOOL;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[AxisPower(
+	Axis:= AxisRef, 
+	Enable:= bPowerEnable, 
+	Enable_Positive:= TRUE, 
+	Enable_Negative:= TRUE, 
+	Override:= 100.0, 
+	BufferMode:= PowerBufferMode, 
+	Options:= PowerOptions, 
+	Status=> bPowerStatus, 		
+	Busy=> PowerOut.Busy,        
+	Active=> PowerOut.Active,      
+	Error=> PowerOut.Error,       
+	ErrorID=> PowerOut.ErrorID);    
+
+(*	
+AxisHome(
+	Axis:= AxisRef, 
+	Execute:= bHomeExec, 
+	Position:= MoveToHome, 
+	HomingMode:= HomingMode, 
+	BufferMode:= HomeBufferMode, 
+	Options:= HomeOptions, 
+	bCalibrationCam:= bHomeCalibrationCam, 
+	Done=> 				HomeOut.Done, 
+	Busy=> 				HomeOut.Busy, 
+	Active=> 			HomeOut.Active, 
+	CommandAborted=> 	HomeOut.CommandAborted, 
+	Error=> 			HomeOut.Error, 
+	ErrorID=> 			HomeOut.ErrorID);
+	*)
+
+AxisReset(
+	Axis:= AxisRef, 
+	Execute:= bResetExec, 
+	Done=> ResetOut.Done, 
+	Busy=> ResetOut.Busy, 
+	Error=> ResetOut.Error, 
+	ErrorID=> ResetOut.ErrorID);
+
+//bResetExec := FALSE;
+	
+AxisMoveabsolute(
+	Axis:= AxisRef, 
+	Execute:= bMoveExec, 
+	Position:= rMoveToPos, 
+	Velocity:= rVelocity, 
+	Acceleration:= rAcceleration, 
+	Deceleration:= rDeceleration, 
+	Jerk:= rJerk, 
+	BufferMode:= MoveBufferMode, 
+	Options:= MoveOptions, 
+	Done=> 				MoveOut.Done, 
+	Busy=> 				MoveOut.Busy, 
+	Active=> 			MoveOut.Active, 
+	CommandAborted=> 	MoveOut.CommandAborted, 
+	Error=> 			MoveOut.Error, 
+	ErrorID=> 			MoveOut.ErrorID);
+	
+bMoveExec := FALSE;
+
+AxisJog(
+	Axis:= AxisRef , 
+	JogForward:= bJogForward, 
+	JogBackwards:= bJogBackward, 
+	Mode:= JogMode, 
+	Position:= rJogMoveToPos, 
+	Velocity:= rJogVelocity, 
+	Acceleration:= rJogAcceleration, 
+	Deceleration:= rJogDeceleration, 
+	Jerk:= rJogJerk, 
+	Done=> JogOut.Done, 
+	Busy=> JogOut.Busy, 
+	Active=> JogOut.Active, 
+	CommandAborted=> JogOut.CommandAborted, 
+	Error=> JogOut.Error, 
+	ErrorID=> JogOut.ErrorID);
+
+fbSetPosition(
+	Axis:= AxisRef, 
+	Execute:= bSetPosition, 
+	Position:= rSetPosition, 
+	Mode:= FALSE, 
+	Options:= , 
+	Done=> SetPos.Done, 
+	Busy=> SetPos.Busy, 
+	Error=> SetPos.Error, 
+	ErrorID=> SetPos.ErrorID);
+
+tonHomeDelay(IN:= eHomeState = E_HomeState.Delay);
+tonSecondDelay(IN:= eHomeState = E_HomeState.SecondDelay);	
+tonFinalDelay(IN:= eHomeState = E_HomeState.FinalDelay);		
+bHomed := FALSE;
+
+
+
+CASE eHomeState OF
+	E_HomeState.Inactive:
+		 IF bHomeCmd THEN
+			 eHomeState := E_HomeState.Jog;
+		 END_IF
+	E_HomeState.Jog:
+		bJogBackward:=TRUE;
+		IF bHomeCalibrationCam THEN
+			bJogBackward:=FALSE;
+			eHomeState := E_HomeState.Delay;
+		END_IF
+//	E_HomeState.Delay:
+//		 IF tonHomeDelay.Q THEN
+//			 eHomeState := E_HomeState.SetPos;
+//		 END_IF		
+//// homing lisä
+	E_HomeState.Delay:
+		IF tonHomeDelay.Q THEN
+			eHomeState := E_HomeState.SecondPhase;
+		END_IF
+	E_HomeState.SecondPhase:
+		IF bHomeCalibrationCam THEN
+			bJogForward:= TRUE;
+			eHomeState := E_HomeState.SecondDelay;
+		END_IF
+	E_HomeState.SecondDelay:
+		IF tonSecondDelay.Q THEN
+			bJogForward:= FALSE;
+			eHomeState := E_HomeState.FinalHoming;
+		END_IF
+	E_HomeState.FinalHoming:
+		rJogVelocity := 2;
+		bJogBackward:= TRUE;
+		IF bHomeCalibrationCam THEN
+			bJogBackward:= FALSE;
+			rJogVelocity := 30;
+			eHomeState:= E_HomeState.FinalDelay;
+		END_IF
+	E_HomeState.FinalDelay:
+		IF tonFinalDelay.Q THEN
+			eHomeState := E_HomeState.SetPos;
+		END_IF
+////////
+	E_HomeState.SetPos:
+		bSetPosition := TRUE;
+		IF SetPos.Done THEN
+			bSetPosition := FALSE;
+			eHomeState := E_HomeState.HomedReady;
+		END_IF	
+	(*
+	E_HomeState.P2P:
+		P2P(0);
+		IF MoveOut.Done THEN
+			eHomeState := E_HomeState.HomedReady;
+		END_IF
+	*)
+	E_HomeState.HomedReady:
+		bHomed := TRUE;
+			
+END_CASE
+
+ bHomeCmd := FALSE;
+ 
+ rDistanceToTarget := ABS(AxisRef.NcToPlc.ActPos - rMoveToPos);
+ bP2P_Ready := rDistanceToTarget < 0.1 AND bHomed;]]></ST>
+    </Implementation>
+    <Method Name="FindHome" Id="{91988a60-917d-4363-bd4e-8ca6476d9857}">
+      <Declaration><![CDATA[METHOD FindHome : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eHomeState = E_HomeState.Inactive THEN
+	bHomeCmd := TRUE;
+	FindHome := TRUE;
+ELSE
+	FindHome := FALSE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="P2P" Id="{300f509f-2a8d-42a7-9d6e-2928976bbf3c}">
+      <Declaration><![CDATA[METHOD P2P : BOOL
+VAR_INPUT
+	TargetPos: LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[
+
+IF bPowerStatus THEN
+	rMoveToPos := TargetPos;
+	bMoveExec := TRUE;
+	P2P := TRUE;
+	bP2P_Ready := FALSE;
+ELSE
+	P2P := FALSE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="PowerOff" Id="{e863b680-91a8-4341-b688-19132c073e0a}">
+      <Declaration><![CDATA[METHOD PowerOff : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPowerEnable := FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="PowerOn" Id="{d85ef4ae-a3e4-4526-bc8c-ad1ddf7782a2}">
+      <Declaration><![CDATA[METHOD PowerOn : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bPowerEnable := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Reset" Id="{607a3cf8-213a-4b0f-8ad1-284e7983a098}">
+      <Declaration><![CDATA[METHOD Reset : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[bResetExec := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FBMotion">
+      <LineId Id="389" Count="12" />
+      <LineId Id="1254" Count="0" />
+      <LineId Id="402" Count="8" />
+      <LineId Id="436" Count="4" />
+      <LineId Id="416" Count="1" />
+      <LineId Id="1574" Count="0" />
+      <LineId Id="1577" Count="5" />
+      <LineId Id="1575" Count="0" />
+      <LineId Id="1586" Count="0" />
+      <LineId Id="1585" Count="0" />
+      <LineId Id="1255" Count="0" />
+      <LineId Id="418" Count="5" />
+      <LineId Id="637" Count="0" />
+      <LineId Id="639" Count="0" />
+      <LineId Id="426" Count="7" />
+      <LineId Id="677" Count="0" />
+      <LineId Id="435" Count="0" />
+      <LineId Id="681" Count="0" />
+      <LineId Id="684" Count="14" />
+      <LineId Id="682" Count="0" />
+      <LineId Id="1256" Count="0" />
+      <LineId Id="1295" Count="8" />
+      <LineId Id="680" Count="0" />
+      <LineId Id="1264" Count="0" />
+      <LineId Id="1262" Count="0" />
+      <LineId Id="2116" Count="1" />
+      <LineId Id="1320" Count="0" />
+      <LineId Id="1654" Count="0" />
+      <LineId Id="1569" Count="0" />
+      <LineId Id="1291" Count="0" />
+      <LineId Id="1257" Count="1" />
+      <LineId Id="1270" Count="0" />
+      <LineId Id="1282" Count="1" />
+      <LineId Id="1265" Count="0" />
+      <LineId Id="1285" Count="1" />
+      <LineId Id="1289" Count="0" />
+      <LineId Id="1287" Count="1" />
+      <LineId Id="1266" Count="0" />
+      <LineId Id="1292" Count="1" />
+      <LineId Id="1274" Count="1" />
+      <LineId Id="1723" Count="0" />
+      <LineId Id="1729" Count="0" />
+      <LineId Id="1724" Count="0" />
+      <LineId Id="1730" Count="1" />
+      <LineId Id="1736" Count="0" />
+      <LineId Id="1734" Count="0" />
+      <LineId Id="2095" Count="0" />
+      <LineId Id="1738" Count="0" />
+      <LineId Id="1726" Count="0" />
+      <LineId Id="2096" Count="0" />
+      <LineId Id="2099" Count="0" />
+      <LineId Id="2097" Count="1" />
+      <LineId Id="1727" Count="0" />
+      <LineId Id="2106" Count="0" />
+      <LineId Id="2100" Count="0" />
+      <LineId Id="2103" Count="1" />
+      <LineId Id="2107" Count="1" />
+      <LineId Id="2105" Count="0" />
+      <LineId Id="1728" Count="0" />
+      <LineId Id="2111" Count="0" />
+      <LineId Id="2114" Count="1" />
+      <LineId Id="2113" Count="0" />
+      <LineId Id="1267" Count="0" />
+      <LineId Id="1307" Count="0" />
+      <LineId Id="1309" Count="0" />
+      <LineId Id="1311" Count="0" />
+      <LineId Id="1310" Count="0" />
+      <LineId Id="1308" Count="0" />
+      <LineId Id="1277" Count="0" />
+      <LineId Id="1268" Count="0" />
+      <LineId Id="1313" Count="1" />
+      <LineId Id="1278" Count="0" />
+      <LineId Id="1315" Count="0" />
+      <LineId Id="1279" Count="0" />
+      <LineId Id="1269" Count="0" />
+      <LineId Id="1280" Count="0" />
+      <LineId Id="1316" Count="0" />
+      <LineId Id="1259" Count="0" />
+      <LineId Id="1322" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="1503" Count="1" />
+      <LineId Id="1440" Count="0" />
+    </LineIds>
+    <LineIds Name="FBMotion.FindHome">
+      <LineId Id="6" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="7" Count="2" />
+    </LineIds>
+    <LineIds Name="FBMotion.P2P">
+      <LineId Id="28" Count="1" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="34" Count="1" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FBMotion.PowerOff">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FBMotion.PowerOn">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FBMotion.Reset">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

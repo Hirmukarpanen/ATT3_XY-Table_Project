@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_HomeState" Id="{a792deff-22b4-40d6-852c-d8968cabafcd}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_HomeState :
+(
+	Inactive := 0,
+	Jog,
+	Delay,
+	SetPos,
+	P2P,
+	HomedReady,
+	SecondPhase,
+	SecondDelay,
+	FinalDelay,
+	FinalHoming
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

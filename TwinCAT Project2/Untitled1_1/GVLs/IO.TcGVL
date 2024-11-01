@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="IO" Id="{a8c86398-4077-4bee-8668-efb35fa8ab1f}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	bRA1S AT %I*: BOOL;
+	bRA2S AT %I*: BOOL;
+	Anturi_X_1 AT %I*: BOOL;
+	Anturi_Y_3 AT %I*: BOOL;
+	bLifter AT %Q*: BOOL;
+	Nostin AT %Q*: BOOL;
+	
+
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

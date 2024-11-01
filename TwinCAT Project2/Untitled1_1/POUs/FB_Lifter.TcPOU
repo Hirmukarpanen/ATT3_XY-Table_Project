@@ -1,0 +1,188 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_Lifter" Id="{5783411b-d6ff-44ed-8a5b-d08f1ab0363a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Lifter
+VAR_OUTPUT
+	bLifter: BOOL;
+	bImukuppi: BOOL;
+END_VAR
+VAR
+	DelayStart: BOOL;
+	tonImukuppiDelay: TON := (PT := TIME#2s0ms);
+	LifterState: E_LifterState;
+	NostoCMD: BOOL;
+	bKplKyydissa: BOOL;
+	LaskuCMD: BOOL;
+END_VAR
+VAR_OUTPUT
+	Ready: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+tonImukuppiDelay(IN := DelayStart);
+
+
+
+CASE LifterState OF
+	
+	E_LifterState.KplEiKyydissa:
+		Ready := TRUE;
+		IF NostoCMD = TRUE THEN
+			LifterState := E_LifterState.NostoAlas;
+			Ready := FALSE;
+		END_IF
+	
+	E_LifterState.NostoAlas:
+		Ready := FALSE;
+		bLifter := TRUE;
+		tonImukuppiDelay.PT := T#1S;
+		DelayStart := TRUE;
+		IF tonImukuppiDelay.Q THEN
+			DelayStart := FALSE;
+			LifterState := E_LifterState.NostoImukuppi;
+		END_IF
+	
+	E_LifterState.NostoImukuppi:
+		bImukuppi := TRUE;
+		bLifter := TRUE;
+		tonImukuppiDelay.PT := T#2S;
+		DelayStart := TRUE;
+		IF tonImukuppiDelay.Q THEN
+			DelayStart := FALSE;
+			LifterState := E_LifterState.NostoYlos;
+		END_IF
+	
+	E_LifterState.NostoYlos:
+		bLifter := FALSE;
+		tonImukuppiDelay.PT := T#2S;
+		DelayStart := TRUE;
+		IF tonImukuppiDelay.Q THEN
+			DelayStart := FALSE;
+			LifterState := E_LifterState.KplKyydissa;
+		END_IF	
+	
+	/////////////////////
+	
+	E_LifterState.KplKyydissa:
+		Ready := TRUE;
+		bKplKyydissa :=TRUE;
+		IF LaskuCMD = TRUE THEN
+			Ready := FALSE;
+			LifterState := E_LifterState.LaskuAlas;
+		END_IF
+	
+	/////////////////////////
+	
+	
+	E_LifterState.LaskuAlas:
+		Ready := FALSE;
+		bLifter := TRUE;
+		tonImukuppiDelay.PT := T#1S;
+		DelayStart := TRUE;
+		IF tonImukuppiDelay.Q THEN
+			DelayStart := FALSE;
+			LifterState := E_LifterState.LaskuImukuppi;
+		END_IF
+	
+	E_LifterState.LaskuImukuppi:
+		bImukuppi := FALSE;
+		bLifter := TRUE;
+		tonImukuppiDelay.PT := T#2S;
+		DelayStart := TRUE;
+		IF tonImukuppiDelay.Q THEN
+			DelayStart := FALSE;
+			LifterState := E_LifterState.LaskuYlos;
+		END_IF
+	
+	E_LifterState.LaskuYlos:
+		bLifter := FALSE;
+		tonImukuppiDelay.PT := T#2S;
+		DelayStart := TRUE;
+		IF tonImukuppiDelay.Q THEN
+			DelayStart := FALSE;
+			LifterState := E_LifterState.KplEiKyydissa;
+		END_IF	
+	
+END_CASE
+
+LaskuCMD := FALSE;
+NostoCMD := FALSE;]]></ST>
+    </Implementation>
+    <Method Name="KplLasku" Id="{2ea166f5-e773-407e-a6ba-55ba8b8a5ad5}">
+      <Declaration><![CDATA[METHOD KplLasku : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[LaskuCMD := TRUE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="KplNosto" Id="{7747a54a-c261-4a6a-84d9-63b8b0585b6f}">
+      <Declaration><![CDATA[METHOD KplNosto : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[NostoCMD := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_Lifter">
+      <LineId Id="22" Count="1" />
+      <LineId Id="407" Count="1" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="371" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="390" Count="0" />
+      <LineId Id="116" Count="2" />
+      <LineId Id="372" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="120" Count="0" />
+      <LineId Id="123" Count="1" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="148" Count="1" />
+      <LineId Id="156" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="152" Count="1" />
+      <LineId Id="155" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="157" Count="2" />
+      <LineId Id="165" Count="0" />
+      <LineId Id="162" Count="2" />
+      <LineId Id="161" Count="0" />
+      <LineId Id="160" Count="0" />
+      <LineId Id="168" Count="0" />
+      <LineId Id="271" Count="1" />
+      <LineId Id="169" Count="0" />
+      <LineId Id="369" Count="0" />
+      <LineId Id="170" Count="0" />
+      <LineId Id="237" Count="0" />
+      <LineId Id="389" Count="0" />
+      <LineId Id="238" Count="1" />
+      <LineId Id="267" Count="2" />
+      <LineId Id="240" Count="1" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="242" Count="24" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="171" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Lifter.KplLasku">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_Lifter.KplNosto">
+      <LineId Id="111" Count="0" />
+      <LineId Id="79" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

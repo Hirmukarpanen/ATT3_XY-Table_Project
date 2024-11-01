@@ -1,0 +1,327 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="Motion" Id="{001a247c-a044-487c-a28e-44191cbf5c4a}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Motion
+
+VAR
+	
+		
+
+	X: FBMotion;
+	Y: FBMotion;  
+	AxisRefX: AXIS_REF;
+	AxisRefY: AXIS_REF;
+	ManualMove: BOOL;
+	rTarget_Y: LREAL;
+	rTarget_X: LREAL;
+	PowerOffStop: BOOL;
+	PowerOn: BOOL;
+	Reset_X: BOOL;
+	Reset_Y: BOOL;
+	FindHome: BOOL;
+	ManualSlotMove: BOOL;
+	SlotVariableY: INT;
+	SlotVariableX: INT;
+	fbLifter: FB_Lifter;
+	Nosto: BOOL;
+	Lasku: BOOL;
+	eMode: E_Mode := E_MODE.manual;
+	eState: E_State;
+	AutoInit: BOOL := FALSE;
+	tonNostonLaskuDelay: TON := (PT := TIME#1s0ms);
+	tonNostonNostoDelay: TON := (PT := TIME#1S0MS);
+	tonLaskunLaskuDelay: TON := (PT:= TIME#1S0MS);
+	tonXDelayEnnenYP2P: TON := (PT:= TIME#100MS);
+	DelayStartNostonLasku: BOOL;
+	DelayStartNostonNosto: BOOL;
+	DelayStartLaskunLasku: BOOL;
+	DelayStartXDelayEnnenYP2P: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//X-akseli
+X(AxisRef:= AxisRefX, bHomeCalibrationCam:=(IO.Anturi_X_1));
+
+//Y-akseli
+Y(AxisRef:= AxisRefY, bHomeCalibrationCam:=(IO.Anturi_Y_3));
+
+//fbLifter();
+//IO.bLifter := fbLifter.bLifter;
+//IO.Imukuppi := fbLifter.bImukuppi;
+
+tonNostonLaskuDelay(IN:= DelayStartNostonLasku);
+tonNostonNostoDelay(IN:= DelayStartNostonNosto);
+tonLaskunLaskuDelay(IN:= DelayStartLaskunLasku);
+tonXDelayEnnenYP2P(IN:= DelayStartXDelayEnnenYP2P);
+
+CASE eMode OF
+	E_Mode.manual:		
+		IF ManualMove THEN
+			Y.P2P(rTarget_Y);
+			X.P2P(rTarget_X);
+			ManualMove := FALSE;
+		END_IF
+		
+		IF ManualSlotMove THEN
+			Y.P2P(Slots.Coords[SlotVariableY].y);
+			X.P2P(Slots.Coords[SlotVariableX].x);
+			ManualSlotMove := FALSE;
+		END_IF
+		
+		IF Reset_X THEN
+			X.Reset();
+			Reset_X := FALSE;
+		END_IF
+		
+		IF Reset_Y THEN
+			Y.Reset();
+			Reset_Y := FALSE;
+		END_IF
+		
+		
+		IF PowerOffStop THEN
+			X.PowerOff();
+			Y.PowerOff();
+			PowerOffStop := FALSE;
+		END_IF
+		
+		IF PowerOn THEN
+			X.PowerOn();
+			Y.PowerOn();
+			PowerOn := FALSE;
+		END_IF
+		
+		IF FindHome THEN
+			X.FindHome();
+			IF X.bHomed THEN
+				Y.FindHome();
+				FindHome := FALSE;
+			END_IF
+			
+		END_IF
+		
+		IF Nosto THEN
+			fbLifter.KplNosto();
+			Nosto := FALSE;
+		END_IF
+		
+		IF Lasku THEN
+			fbLifter.KplLasku();
+			Lasku := FALSE;
+		END_IF
+	
+	E_Mode.auto:
+		CASE eState OF
+			E_State.inactive:
+				IF AutoInit THEN
+					AutoInit:= FALSE;
+					X.PowerOn();
+					Y.PowerOn();
+					eState := E_state.initialising;
+				END_IF
+	
+			E_State.initialising:
+				IF X.bPowerStatus AND Y.bPowerStatus THEN
+					X.FindHome();
+					//Y.FindHome();
+					eState := E_state.homing;
+				END_IF
+			
+			E_State.homing:
+				IF X.bHomed  THEN //AND Y.bHomed THEN
+					Y.FindHome();		
+					IF Y.bHomed THEN
+						eState := E_state.ready;	
+					END_IF		
+				END_IF
+				
+			E_State.ready:
+				IF Comms.bSlotCmd THEN
+					Comms.bSlotCmd := FALSE;
+					X.P2P(Slots.Coords[Comms.stSlotCmd.from_slot].x);
+					Y.P2P(Slots.Coords[Comms.stSlotCmd.from_slot].y);
+					eState := E_state.move2pick;
+				ELSIF Comms.kotiutusnappi THEN
+					Comms.kotiutusnappi := FALSE;
+					Y.P2P(0.0);
+					X.P2P(0.0);
+					eState := E_state.kotiutusnappi;
+				END_IF
+				
+			E_State.move2pick:
+				IF X.bP2P_Ready AND Y.bP2P_Ready THEN
+					// fbLifter.KplNosto();
+					IO.Nostin := TRUE;
+					tonNostonLaskuDelay.PT := T#1S;
+					DelayStartNostonLasku := TRUE;
+					IF tonNostonLaskuDelay.Q THEN
+						DelayStartNostonLasku := FALSE;
+						Y.P2P(AxisRefY.NcToPlc.ActPos + 100);
+						eState := E_state.pick;
+					END_IF
+				END_IF
+				
+			E_State.pick:
+				IF Y.bP2P_Ready THEN
+					IO.Nostin := FALSE;
+					tonNostonNostoDelay.PT := T#1S;
+					DelayStartNostonNosto := TRUE;
+					IF tonNostonNostoDelay.Q THEN
+						DelayStartNostonNosto := FALSE;
+						Y.P2P(AxisRefY.NcToPlc.ActPos - 100);
+						eState := E_state.pick2;
+					END_IF
+				END_IF;
+					
+			E_State.pick2:
+				IF Y.bP2P_Ready THEN
+					X.P2P(Slots.Coords[Comms.stSlotCmd.to_slot].x);
+					eState := E_state.pick3;
+				END_IF
+				
+			E_State.pick3:
+				IF X.bP2P_Ready THEN
+					Y.P2P(Slots.Coords[Comms.stSlotCmd.to_slot].y + 100);
+					eState := E_state.move2place;
+				END_IF
+				
+			E_State.move2place:
+				IF X.bP2P_Ready AND Y.bP2P_Ready THEN
+					// fbLifter.KplLasku();
+					IO.Nostin := TRUE;
+					tonLaskunLaskuDelay.PT := T#1S;
+					DelayStartLaskunLasku := TRUE;
+					IF tonLaskunLaskuDelay.Q THEN
+						DelayStartLaskunLasku := FALSE;
+						Y.P2P(AxisRefY.NcToPlc.ActPos - 100);
+						eState := E_state.place;
+					END_IF
+				END_IF
+				
+			E_State.place:
+				IF X.bP2P_Ready AND Y.bP2P_Ready THEN
+					IO.Nostin := FALSE;
+					eState := E_state.ready;
+				END_IF;
+
+			E_State.kotiutusnappi:
+				IF X.bP2P_Ready AND Y.bP2P_Ready THEN
+					eState := E_state.ready;
+				END_IF;
+		END_CASE
+END_CASE
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="Motion">
+      <LineId Id="205" Count="1" />
+      <LineId Id="209" Count="2" />
+      <LineId Id="327" Count="0" />
+      <LineId Id="326" Count="0" />
+      <LineId Id="341" Count="1" />
+      <LineId Id="752" Count="0" />
+      <LineId Id="751" Count="0" />
+      <LineId Id="759" Count="0" />
+      <LineId Id="655" Count="0" />
+      <LineId Id="987" Count="0" />
+      <LineId Id="365" Count="1" />
+      <LineId Id="371" Count="11" />
+      <LineId Id="543" Count="2" />
+      <LineId Id="547" Count="0" />
+      <LineId Id="546" Count="0" />
+      <LineId Id="550" Count="0" />
+      <LineId Id="552" Count="2" />
+      <LineId Id="551" Count="0" />
+      <LineId Id="548" Count="0" />
+      <LineId Id="383" Count="14" />
+      <LineId Id="534" Count="0" />
+      <LineId Id="398" Count="0" />
+      <LineId Id="541" Count="0" />
+      <LineId Id="535" Count="0" />
+      <LineId Id="399" Count="14" />
+      <LineId Id="417" Count="0" />
+      <LineId Id="424" Count="0" />
+      <LineId Id="432" Count="0" />
+      <LineId Id="435" Count="1" />
+      <LineId Id="443" Count="0" />
+      <LineId Id="433" Count="0" />
+      <LineId Id="437" Count="0" />
+      <LineId Id="418" Count="0" />
+      <LineId Id="440" Count="0" />
+      <LineId Id="447" Count="1" />
+      <LineId Id="441" Count="1" />
+      <LineId Id="425" Count="0" />
+      <LineId Id="445" Count="1" />
+      <LineId Id="536" Count="0" />
+      <LineId Id="538" Count="2" />
+      <LineId Id="450" Count="0" />
+      <LineId Id="444" Count="0" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="451" Count="0" />
+      <LineId Id="455" Count="0" />
+      <LineId Id="457" Count="1" />
+      <LineId Id="452" Count="0" />
+      <LineId Id="1008" Count="1" />
+      <LineId Id="1012" Count="1" />
+      <LineId Id="1011" Count="0" />
+      <LineId Id="1010" Count="0" />
+      <LineId Id="454" Count="0" />
+      <LineId Id="420" Count="0" />
+      <LineId Id="459" Count="1" />
+      <LineId Id="588" Count="0" />
+      <LineId Id="755" Count="0" />
+      <LineId Id="760" Count="1" />
+      <LineId Id="765" Count="0" />
+      <LineId Id="762" Count="0" />
+      <LineId Id="764" Count="0" />
+      <LineId Id="763" Count="0" />
+      <LineId Id="461" Count="0" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="421" Count="0" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="590" Count="0" />
+      <LineId Id="716" Count="0" />
+      <LineId Id="753" Count="0" />
+      <LineId Id="746" Count="0" />
+      <LineId Id="754" Count="0" />
+      <LineId Id="747" Count="0" />
+      <LineId Id="749" Count="0" />
+      <LineId Id="748" Count="0" />
+      <LineId Id="595" Count="0" />
+      <LineId Id="592" Count="1" />
+      <LineId Id="596" Count="0" />
+      <LineId Id="988" Count="0" />
+      <LineId Id="1003" Count="0" />
+      <LineId Id="465" Count="0" />
+      <LineId Id="991" Count="0" />
+      <LineId Id="996" Count="0" />
+      <LineId Id="999" Count="3" />
+      <LineId Id="1004" Count="0" />
+      <LineId Id="422" Count="0" />
+      <LineId Id="469" Count="1" />
+      <LineId Id="926" Count="0" />
+      <LineId Id="932" Count="0" />
+      <LineId Id="927" Count="0" />
+      <LineId Id="933" Count="0" />
+      <LineId Id="937" Count="0" />
+      <LineId Id="936" Count="0" />
+      <LineId Id="934" Count="1" />
+      <LineId Id="468" Count="0" />
+      <LineId Id="429" Count="0" />
+      <LineId Id="423" Count="0" />
+      <LineId Id="472" Count="0" />
+      <LineId Id="939" Count="0" />
+      <LineId Id="475" Count="0" />
+      <LineId Id="430" Count="0" />
+      <LineId Id="1005" Count="0" />
+      <LineId Id="431" Count="0" />
+      <LineId Id="1014" Count="0" />
+      <LineId Id="1007" Count="0" />
+      <LineId Id="1006" Count="0" />
+      <LineId Id="415" Count="0" />
+      <LineId Id="368" Count="0" />
+      <LineId Id="231" Count="0" />
+      <LineId Id="73" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="ST_Message" Id="{fc87dcdc-9ee9-4991-a83c-220dba2df3d3}">
+    <Declaration><![CDATA[TYPE ST_Message :
+STRUCT
+	from_slot :INT;
+	to_slot	:INT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

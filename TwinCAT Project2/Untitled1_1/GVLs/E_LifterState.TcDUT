@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_LifterState" Id="{527fbb2f-37bc-481d-8bac-76e3d78cd46e}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_LifterState :
+(
+	KplEiKyydissa,
+	NostoAlas,
+	NostoImukuppi,
+	NostoYlos,
+	LaskuAlas,
+	LaskuImukuppi,
+	LaskuYlos,
+	KplKyydissa
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

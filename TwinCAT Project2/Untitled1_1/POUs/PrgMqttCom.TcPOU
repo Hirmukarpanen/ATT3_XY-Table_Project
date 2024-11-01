@@ -1,0 +1,173 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="PrgMqttCom" Id="{f0442477-675a-4eb6-b04b-c37d05aa4010}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PrgMqttCom
+VAR
+	fbMqttClient    : FB_IotMqttClient;
+    bSetParameter   : BOOL := TRUE;
+    bConnect        : BOOL := TRUE;
+	
+	(* published message *)
+    sTopicPub   : STRING(255) := 'plc2pc';
+    sPayloadPub : STRING(255);
+    i : UDINT;
+    fbTimer : TON := (PT:=T#10S);
+	
+	(* received message *)
+    bSubscribed    : BOOL;
+    sTopicSub      : STRING(255) := 'pc2plc';
+    {attribute 'TcEncoding':='UTF-8'}
+    sTopicRcv      : STRING(255);
+    {attribute 'TcEncoding':='UTF-8'}
+    sPayloadRcv    : STRING(255);
+    fbMessageQueue : FB_IotMqttMessageQueue;
+    fbMessage      : FB_IotMqttMessage;
+	
+	  fbJson     : FB_JsonDomParser;
+	  jsonDoc    : SJsonValue;
+	  jsonProp   : SJsonValue;
+	  jsonValue  : SJsonValue;
+	  bHasMember : BOOL;
+	  
+	   sMessage   : STRING(255) := '{"serialNumber":"G030PT028191AC4R","batteryVoltage":"1547mV","clickType":"SINGLE"}';
+	  
+	  stReceivedData : ST_jsoncmd;
+	
+	a_pos: INT := 1;
+	b_pos: INT := 1;
+	bias: INT:=4;
+	a_char: STRING(255);
+	b_char: STRING(255);
+	
+	a_len: INT :=1;
+	b_len: INT :=1;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bSetParameter THEN
+    bSetParameter               := FALSE;
+    fbMqttClient.sHostName      := 'localhost';
+    fbMqttClient.nHostPort      := 1883;
+    fbMqttClient.sClientId      := 'varastoplc'; 
+    fbMqttClient.sTopicPrefix   := ''; 
+//    fbMqttClient.nKeepAlive     := 60; 
+    fbMqttClient.sUserName      := 'admin';
+    fbMqttClient.sUserPassword  := 'tietotekniikka3'; 
+//  fbMqttClient.stWill         := ; 
+//  fbMqttClient.stTLS          := ;
+    fbMqttClient.ipMessageQueue := fbMessageQueue;
+END_IF
+
+fbMqttClient.Execute(bConnect);
+
+IF fbMqttClient.bConnected THEN
+    IF NOT bSubscribed THEN
+        bSubscribed := fbMqttClient.Subscribe(sTopic:=sTopicSub, eQoS:=TcIotMqttQos.AtMostOnceDelivery);
+    END_IF
+    fbTimer(IN:=TRUE);
+    IF fbTimer.Q THEN // publish new payload every second
+        fbTimer(IN:=FALSE);
+        i := i + 1;
+        sPayloadPub := CONCAT('MyMessage', TO_STRING(i));
+        fbMqttClient.Publish(    sTopic:= sTopicPub, 
+                                pPayload:= ADR(sPayloadPub), nPayloadSize:= LEN2(ADR(sPayloadPub))+1, 
+                                eQoS:= TcIotMqttQos.AtMostOnceDelivery, bRetain:= FALSE, bQueue:= FALSE );
+    END_IF
+END_IF
+
+IF fbMessageQueue.nQueuedMessages > 0 THEN
+    IF fbMessageQueue.Dequeue(fbMessage:=fbMessage) THEN
+        fbMessage.GetTopic(pTopic:=ADR(sTopicRcv), nTopicSize:=SIZEOF(sTopicRcv) );
+        fbMessage.GetPayload(pPayload:=ADR(sPayloadRcv), nPayloadSize:=SIZEOF(sPayloadRcv), bSetNullTermination:=TRUE);
+    END_IF
+END_IF
+
+(* Hieman hämyinen quick'n'dirty parseri - Tukee vain yhden tai kahden merkin mittaisia slotteja *)
+
+a_pos := FIND(sPayloadRcv,'A');
+b_pos := FIND(sPayloadRcv,'B');
+
+// If messgae has both values
+IF a_pos > 0 AND b_pos > 0 THEN
+	IF MID(sPayloadRcv,1,a_pos + bias + 1) = ','THEN
+		a_len := 1;
+	ELSE
+		a_len := 2;
+	END_IF
+	
+	IF MID(sPayloadRcv,1,b_pos + bias + 1) = '}' THEN
+		b_len := 1;
+	ELSE
+		b_len := 2;
+	END_IF
+	
+	a_char := MID(sPayloadRcv,a_len,a_pos + bias);
+	b_char := MID(sPayloadRcv,b_len,b_pos + bias);
+	
+	Comms.stSlotCmd.from_slot := STRING_TO_INT(a_char);
+	Comms.stSlotCmd.to_slot := STRING_TO_INT(b_char);
+	Comms.bSlotCmd := TRUE;
+	
+	sPayloadRcv := '';
+ELSE
+	Comms.bSlotCmd := FALSE;
+END_IF
+
+
+
+(* Something fuzzy with json chars
+//jsonDoc := fbJson.ParseDocument(sPayloadRcv);
+jsonDoc := fbJson.ParseDocument(sMessage);
+
+jsonProp := fbJson.FindMember(jsonDoc, 'from_slot');
+IF (jsonProp <> 0) THEN
+  stReceivedData.from_slot := DINT_TO_INT(fbJson.GetInt(jsonProp));
+END_IF
+
+jsonProp := fbJson.FindMember(jsonDoc, 'to_slot');
+IF (jsonProp <> 0) THEN
+  stReceivedData.to_slot := DINT_TO_INT(fbJson.GetInt(jsonProp));
+END_IF
+
+*)
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="PrgMqttCom">
+      <LineId Id="25" Count="5" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="32" Count="6" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="40" Count="13" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="55" Count="5" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="114" Count="1" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="427" Count="0" />
+      <LineId Id="423" Count="1" />
+      <LineId Id="428" Count="14" />
+      <LineId Id="444" Count="1" />
+      <LineId Id="449" Count="0" />
+      <LineId Id="448" Count="0" />
+      <LineId Id="446" Count="0" />
+      <LineId Id="450" Count="1" />
+      <LineId Id="426" Count="0" />
+      <LineId Id="410" Count="0" />
+      <LineId Id="119" Count="1" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="100" Count="3" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="105" Count="3" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="122" Count="0" />
+      <LineId Id="121" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="95" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

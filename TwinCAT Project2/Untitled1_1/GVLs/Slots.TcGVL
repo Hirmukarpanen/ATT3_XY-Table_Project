@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="Slots" Id="{54520535-cce9-4221-8314-d8c34416e64c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	Coords: ARRAY[0..10] OF ST_Coord := [(x := 10, y := 10), (x := 150, y := 10), (x := 250, y := 10), (x := 333.33, y := 41.67), (x := 0, y := 0), (x := 200, y := 125), (x := 333.33, y := 125), (x := 66.667, y := 208.33), (x := 200, y := 208.33), (x := 333.33, y := 208.33), (x := 160, y := 410)];
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

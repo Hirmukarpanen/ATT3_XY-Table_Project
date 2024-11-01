@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_State" Id="{1f139852-0cdc-4fcd-af3c-6b64e72c3323}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE E_State :
+(
+	inactive := 0,
+	initialising,
+	homing,
+	ready,
+	move2pick,
+	pick,
+	pick2,
+	pick3,
+	move2place,
+	place,
+	kotiutusnappi
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

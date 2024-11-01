@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="Comms" Id="{83ef44fa-8091-4437-9d45-cbe839a72cc9}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	bSlotCmd :BOOL;
+	stSlotCmd :ST_jsoncmd;
+	kotiutusnappi :BOOL;
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>
