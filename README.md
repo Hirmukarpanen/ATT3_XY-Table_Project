@@ -74,6 +74,8 @@ Viikko 7-8: Demotilaisuus ja projektin tulosten arviointi.
 Projektin seuranta: Viikottaiset raportit edistymisestä ja ongelmista, sekä lopullinen yhteenveto PoC:n onnistumisesta.
 
 
+![Nimetön kaavio drawio](https://github.com/user-attachments/assets/71bc1fd0-c497-4ee0-97ba-6e4a73698bd3)
+
 MVP- on muodostaa edes jonkunlainen yhteys twincatin ja brokerin välillä.
 
 Stretch goal-
