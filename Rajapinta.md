@@ -24,3 +24,4 @@ MoveXYTable ja StopXYTable ovat funktioita, jotka sisältävät XY-pöydän ohja
 5. Palautteen lähetys
    
 Kun XY-pöytä on saavuttanut tavoitepaikan tai kun komento on vastaanotettu, tai joku virhetilanne on mennyt päälle voidaan lähettää palautteena tilatieto.
+![Untitled Diagram drawio](https://github.com/user-attachments/assets/afda05a4-785d-4125-ba84-e7163f23f83c)
