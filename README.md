@@ -16,7 +16,9 @@ Tekninen toteutettavuus:
 Varmistetaan, että MQTT-protokolla voidaan integroida PLC-järjestelmään ja että datan käsittely toimii luotettavasti.
 Toiminnallisuuden täyttyminen: Ratkaisun on pystyttävä toteuttamaan ohjausliikkeet ja simuloimaan kuormalavan siirtämistä paikasta A paikkaan B.
 
-Riskien arviointi: Ohjelmiston käytön kokemattomuus ja mahdolliset fyysisen laitteiston ongelmat voivat vaikuttaa projektiin, mutta näitä riskejä voidaan lieventää koulutuksella ja laitteiston kokoonpanomuutoksilla.
+Riskien arviointi: 
+
+Ohjelmiston käytön kokemattomuus ja mahdolliset fyysisen laitteiston ongelmat voivat vaikuttaa projektiin, mutta näitä riskejä voidaan lieventää koulutuksella ja laitteiston kokoonpanomuutoksilla.
 
 
 Ratkaisun Kuvaus:
