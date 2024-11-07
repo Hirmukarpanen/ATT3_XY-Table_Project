@@ -2,8 +2,11 @@
 1. JSON-määrittely
    
 Suunnitellaan ensin JSON-viesti, jolla voit lähettää XY-pöydän koordinaatit ja muut tarvittavat komennot
+
 command: Voidaan käyttää ohjaamaan erilaisia toimintoja, kuten "move", "stop", tai "status".
+
 x_position ja y_position: Määrittävät XY-pöydän tavoitekoordinaatit.
+
 speed: Liikkumisnopeus.
 
 2. TwinCATin PLC-koodi
