@@ -80,6 +80,8 @@ Viikko 1: Aloitus, laitteiston tarkistus ja PLC:n herättely. PLC saatiin palaut
 
 Viikko 2: Yhteyden muodatamisen yrittäminen MQTT kansssa. PLC jouduttiin vaihtamaan tuntemattomasta syystä. Muodostimme projektille yhteden GitHub:in kanssa. Sekä visuaalista siistimistä sähkökeskuksella.
 
+Viikko 3: Kokoonpanoa muutettu mekaanisesti, anturit uudelleen sijoitettu.
+
 
 
 Aikataulu ja Seuranta:
