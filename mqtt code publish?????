@@ -1,0 +1,93 @@
+IF bSetParameter THEN
+    bSetParameter               := FALSE;
+    fbMqttClient.sHostName      := '192.168.1.65';
+    fbMqttClient.nHostPort      := 1884;
+    fbMqttClient.sClientId      := 'varastoplc'; 
+    fbMqttClient.sTopicPrefix   := ''; 
+//    fbMqttClient.nKeepAlive     := 60; 
+    fbMqttClient.sUserName      := 'admin';
+    fbMqttClient.sUserPassword  := '1234'; 
+//  fbMqttClient.stWill         := ; 
+//  fbMqttClient.stTLS          := ;
+    fbMqttClient.ipMessageQueue := fbMessageQueue;
+END_IF
+
+fbMqttClient.Execute(bConnect);
+
+IF fbMqttClient.bConnected THEN
+    IF NOT bSubscribed THEN
+        bSubscribed := fbMqttClient.Subscribe(sTopic:=sTopicSub, eQoS:=TcIotMqttQos.AtMostOnceDelivery);
+    END_IF
+    fbTimer(IN:=TRUE);
+    IF fbTimer.Q THEN // publish new payload every second
+        fbTimer(IN:=FALSE);
+        i := i + 5;
+        sPayloadPub := CONCAT('connected', TO_STRING(i));
+        fbMqttClient.Publish(    sTopic:= sTopicPub, 
+                                pPayload:= ADR(sPayloadPub), nPayloadSize:= LEN2(ADR(sPayloadPub))+1, 
+                                eQoS:= TcIotMqttQos.AtMostOnceDelivery, bRetain:= FALSE, bQueue:= FALSE );
+    END_IF
+END_IF
+
+IF fbMessageQueue.nQueuedMessages > 0 THEN
+    IF fbMessageQueue.Dequeue(fbMessage:=fbMessage) THEN
+        fbMessage.GetTopic(pTopic:=ADR(sTopicRcv), nTopicSize:=SIZEOF(sTopicRcv) );
+        fbMessage.GetPayload(pPayload:=ADR(sPayloadRcv), nPayloadSize:=SIZEOF(sPayloadRcv), bSetNullTermination:=TRUE);
+    END_IF
+END_IF
+
+(* Hieman hämyinen quick'n'dirty parseri - Tukee vain yhden tai kahden merkin mittaisia slotteja *)
+
+a_pos := FIND(sPayloadRcv,'A');
+b_pos := FIND(sPayloadRcv,'B');
+
+// If messgae has both values
+IF a_pos > 0 AND b_pos > 0 THEN
+	IF MID(sPayloadRcv,1,a_pos + bias + 1) = ','THEN
+		a_len := 1;
+	ELSE
+		a_len := 2;
+	END_IF
+	
+	IF MID(sPayloadRcv,1,b_pos + bias + 1) = '}' THEN
+		b_len := 1;
+	ELSE
+		b_len := 2;
+	END_IF
+	
+	a_char := MID(sPayloadRcv,a_len,a_pos + bias);
+	b_char := MID(sPayloadRcv,b_len,b_pos + bias);
+	
+	Comms.stSlotCmd.from_slot := STRING_TO_INT(a_char);
+	Comms.stSlotCmd.to_slot := STRING_TO_INT(b_char);
+	Comms.bSlotCmd := TRUE;
+	
+	sPayloadRcv := '';
+ELSE
+	Comms.bSlotCmd := FALSE;
+END_IF
+
+
+
+(* Something fuzzy with json chars *)
+
+jsonDoc := fbJson.ParseDocument(sPayloadRcv);
+(*jsonDoc := fbJson.ParseDocument(sMessage);*)
+
+jsonProp := fbJson.FindMember(jsonDoc, 'X');
+IF (jsonProp <> 0) THEN
+    // Retrieve the real value directly and assign to LREAL
+    Mqtt.rTarget_X := fbJson.GetInt(jsonProp);  // Direct assignment for real values
+END_IF
+
+jsonProp := fbJson.FindMember(jsonDoc, 'Y');
+IF (jsonProp <> 0) THEN
+    // Retrieve the real value directly and assign to LREAL
+    Mqtt.rTarget_Y := fbJson.GetInt(jsonProp);  // Direct assignment for real values
+END_IF
+
+jsonProp := fbJson.FindMember(jsonDoc, 'Enable');
+IF (jsonProp <> 0) THEN
+    // Retrieve the real value directly and assign to LREAL
+    Mqtt.ManualMove := fbJson.GetBool(jsonProp);  // Direct assignment for real values
+END_IF
