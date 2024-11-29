@@ -18,7 +18,8 @@ IF fbMqttClient.bConnected THEN
     IF NOT bSubscribed THEN
         bSubscribed := fbMqttClient.Subscribe(sTopic:=sTopicSub, eQoS:=TcIotMqttQos.AtMostOnceDelivery);
     END_IF
-    fbTimer(IN:=TRUE);
+END_IF
+(*    fbTimer(IN:=TRUE);
     IF fbTimer.Q THEN // publish new payload every second
         fbTimer(IN:=FALSE);
         i := i + 5;
@@ -28,6 +29,36 @@ IF fbMqttClient.bConnected THEN
                                 eQoS:= TcIotMqttQos.AtMostOnceDelivery, bRetain:= FALSE, bQueue:= FALSE );
     END_IF
 END_IF
+*)
+fbTimer(IN:=TRUE);
+IF fbTimer.Q THEN // publish new payload every second
+    fbTimer(IN:=FALSE);
+
+    // Construct the JSON payload
+    sPayloadPub := CONCAT(
+        CONCAT(CONCAT('{"x":', TO_STRING(Motion.AxisRefX.NcToPlc.ActPos)), ','), 
+        CONCAT(CONCAT('"y":', TO_STRING(Motion.AxisRefY.NcToPlc.ActPos)), ',')
+    );
+    sPayloadPub := CONCAT(
+        sPayloadPub, CONCAT('"power":', TO_STRING(Mqtt.Power))
+    );
+    sPayloadPub := CONCAT(
+        sPayloadPub, CONCAT(CONCAT(',', '"homed":'), TO_STRING(Mqtt.Homed))
+    );
+    sPayloadPub := CONCAT(sPayloadPub, '}'); // Close the JSON object
+
+    // Publish the JSON payload
+    fbMqttClient.Publish(
+        sTopic:= sTopicPub, 
+        pPayload:= ADR(sPayloadPub), 
+        nPayloadSize:= LEN2(ADR(sPayloadPub)) + 1, 
+        eQoS:= TcIotMqttQos.AtMostOnceDelivery, 
+        bRetain:= FALSE, 
+        bQueue:= FALSE 
+    );
+END_IF
+
+
 
 IF fbMessageQueue.nQueuedMessages > 0 THEN
     IF fbMessageQueue.Dequeue(fbMessage:=fbMessage) THEN
@@ -86,8 +117,32 @@ IF (jsonProp <> 0) THEN
     Mqtt.rTarget_Y := fbJson.GetInt(jsonProp);  // Direct assignment for real values
 END_IF
 
-jsonProp := fbJson.FindMember(jsonDoc, 'Enable');
+jsonProp := fbJson.FindMember(jsonDoc, 'PowerOn');
 IF (jsonProp <> 0) THEN
     // Retrieve the real value directly and assign to LREAL
-    Mqtt.ManualMove := fbJson.GetBool(jsonProp);  // Direct assignment for real values
+    Mqtt.PowerOn := fbJson.GetBool(jsonProp);  // Direct assignment for real values
+END_IF
+
+(* 'jsonProp := fbJson.FindMember(jsonDoc, 'PowerOff');
+IF (jsonProp <> 0) THEN
+    // Retrieve the real value directly and assign to LREAL
+    Mqtt.PowerOff := fbJson.GetBool(jsonProp);  // Direct assignment for real values
+END_IF *)
+
+jsonProp := fbJson.FindMember(jsonDoc, 'Home');
+IF (jsonProp <> 0) THEN
+    // Retrieve the real value directly and assign to LREAL
+    Mqtt.Home := fbJson.GetBool(jsonProp);  // Direct assignment for real values
+END_IF
+
+jsonProp := fbJson.FindMember(jsonDoc, 'Reset');
+IF (jsonProp <> 0) THEN
+    // Retrieve the real value directly and assign to LREAL
+    Mqtt.Reset := fbJson.GetBool(jsonProp);  // Direct assignment for real values
+END_IF
+
+jsonProp := fbJson.FindMember(jsonDoc, 'Piston');
+IF (jsonProp <> 0) THEN
+    // Retrieve the real value directly and assign to LREAL
+   io.Nostin := fbJson.GetBool(jsonProp);  // Direct assignment for real values
 END_IF
