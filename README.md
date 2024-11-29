@@ -104,3 +104,4 @@ Viikottaiset raportit edistymisestä ja ongelmista, sekä lopullinen yhteenveto 
 MVP- on muodostaa edes jonkunlainen yhteys twincatin ja brokerin välillä.
 
 Stretch goal-
+![HMI](https://github.com/user-attachments/assets/53b3bc98-f53c-4f0d-bf42-3f317c2ad910)
