@@ -82,6 +82,10 @@ Viikko 2: Yhteyden muodatamisen yrittäminen MQTT kansssa. PLC jouduttiin vaihta
 
 Viikko 3: Kokoonpanoa muutettu mekaanisesti, anturit uudelleen sijoitettu.
 
+Viikko 4: Saatiin Mqtt yhteyden luotua ja alustava HMI
+
+Viikko 5: Saatiin HMI ja mqtt koodi luotua valmiiksi :D
+
 
 
 Aikataulu ja Seuranta:
